@@ -4,7 +4,6 @@ use lib "$Bin/lib";
 use Test::Most;
 use Catalyst::Test 'MyApp';
 
-
 {
   ok my $res = request '/favicon.ico';
   is $res->code, 200;

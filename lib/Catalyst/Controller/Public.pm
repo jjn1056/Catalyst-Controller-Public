@@ -83,7 +83,6 @@ has _static_server => (
 
 sub begin :Private {
   my ($self, $c) = @_;
-  $c->log->debug("Public Path: ${\$self->static_path}") if $c->debug;
   $c->log->abort(1) if $self->suppress_logs && $c->log->can('abort');
 }
 
@@ -92,7 +91,6 @@ sub serve_file :Path('') {  }
 sub end :Private {
   my ($self, $c) = @_;
   my $env = $c->Catalyst::Utils::env_at_path_prefix;
-  
   $c->res->from_psgi_response($self->_static_server->($env));
 }
 
