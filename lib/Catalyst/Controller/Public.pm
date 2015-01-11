@@ -157,7 +157,8 @@ So the following URLs would be mapped as so:
 
 I prefer to have a controller to manage public assets since I like to use $c->uri_for
 and similar to construct paths.  Out of the box this controller does what I think is
-the mostly right thing, which is it serves public assets using L<Plack::App::Directory>
+the mostly right thing, which is it serves public assets using something like
+L<Plack::App::Directory> or L<Plack::App::File> (if I am in production or not)
 from $HOME/root/${controller-namespace} and it also makes it easy to create private
 paths to public URLs in the way that makes sense to you.
 
@@ -186,11 +187,39 @@ Boolean.  Default: true.
 
 By default we suppress most of the Catalyst debugging output on the assumption that it would 
 just clutter your terminal.  Set this to a false value (like 0) if you want to see all the
-full logs
+full logs.  Useful if your files are not being served as desired.
 
-=head2 public_path
+=head2 allow_directory_listing
 
-Full path to where your public root is.  Change this if its not in $HOME/root/public
+Boolean.  Default: $c->debug
+
+Whether or not you want to serve directories (let people browse your public filesystem).  If
+L<Catalyst> is in debug mode (via for example CATALYST_DEBUG=1) this is automatically true.
+You can manually control this here if you want.
+
+=head2 static_base
+
+String.  Default: Value of $c->config->{root} (usually $APP_HOME/root)
+
+The base part of where files will be served.  This will be combined with L</static_parts>
+to determine the true root of your public files.
+
+=head2 static_parts
+
+String. Default to controller action namespace.
+
+Completes the path to the directory where files are served from.  For example if your
+$c->config->{root} = "/home/developer/MyApp/root" and your controller is "MyApp::Controller::Static"
+this will point to:
+
+    /home/developer/MyApp/root/static
+
+Since in this case your action namespace is static.
+
+=head2 static_path
+
+This is a read only accessor that gives you the full path to the directory where we will serve
+the public files.
 
 =head2 encoding
 
