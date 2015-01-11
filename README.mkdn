@@ -1,0 +1,103 @@
+# TITLE
+
+Catalyst::Controller::Public - A controller to serve static files
+
+# SYNOPSIS
+
+```perl
+use warnings;
+use strict;
+
+package MyApp::Controller::Static;
+
+use base 'Catalyst::Controller::Static';
+
+# localhost://favicon.ico => $HOME/root/static/favicon.ico
+sub favicon :Path('/favicon.ico') { }
+
+# localhost://css => $HOME/root/static/css
+sub css :Path('/css') { }
+
+__PACKAGE__->meta->make_immutable;
+```
+
+And This creates the following public and private endpoints
+
+```
+[debug] Loaded components:
+.-----------------------------------------------------------------+----------.
+| Class                                                           | Type     |
++-----------------------------------------------------------------+----------+
+| MyApp::Controller::Static                                       | instance |
+'-----------------------------------------------------------------+----------'
+
+[debug] Loaded Private actions:
+.----------------------+--------------------------------------+--------------.
+| Private              | Class                                | Method       |
++----------------------+--------------------------------------+--------------+
+| /static/serve_file   | MyApp::Controller::Static            | serve_file   |
+| /static/favicon      | MyApp::Controller::Static            | favicon      |
+| /static/css          | MyApp::Controller::Static            | css          |
+| /static/end          | MyApp::Controller::Static            | end          |
+| /static/begin        | MyApp::Controller::Static            | begin        |
+'----------------------+--------------------------------------+--------------'
+
+[debug] Loaded Path actions:
+.-------------------------------------+--------------------------------------.
+| Path                                | Private                              |
++-------------------------------------+--------------------------------------+
+| /css/...                            | /static/css                          |
+| /favicon.ico/...                    | /static/favicon                      |
+| /static/...                         | /static/serve_file                   |
+'-------------------------------------+--------------------------------------'
+```
+
+# DISCRIPTION
+
+I prefer to have a controller to manage static assets since I like to use $c->uri\_for
+and similar to construct paths.  Out of the box this controller does what I think is
+the mostly right thing, which is it serves static assets using [Plack::App::Directory](https://metacpan.org/pod/Plack::App::Directory)
+from $HOME/root/static and it also makes it easy to create private paths to public
+URLs in the way that makes sense to you.
+
+If you inherit from this you will get a public URL endpoint which is the same as the
+controller's namespace.  That will serve files under your `static_path`, which just
+defaults as already described.
+
+# CONFIGURATON
+
+If you must change things ( :) ) you have the following configuraiton options
+
+## suppress\_logs
+
+Boolean.  Default: true.
+
+By default we suppress most of the Catalyst debugging output on the assumption that it would 
+just clutter your terminal.  Set this to a false value (like 0) if you want to see all the
+full logs
+
+## static\_path
+
+Full path to where your static root is.  Change this if its not in $HOME/root/static
+
+## encoding
+
+## content\_type
+
+These get passed down to [Plack::App::Directory](https://metacpan.org/pod/Plack::App::Directory) which inherits them from [Plack::App::File](https://metacpan.org/pod/Plack::App::File)
+so review that package for more information
+
+# AUTHOR
+
+John Napiorkowski [email:jjnapiork@cpan.org](email:jjnapiork@cpan.org)
+
+# SEE ALSO
+
+[Catalyst](https://metacpan.org/pod/Catalyst), [Catalyst::Controller](https://metacpan.org/pod/Catalyst::Controller), [Plack::App::Directory](https://metacpan.org/pod/Plack::App::Directory).
+
+# COPYRIGHT & LICENSE
+
+Copyright 2015, John Napiorkowski [email:jjnapiork@cpan.org](email:jjnapiork@cpan.org)
+
+This library is free software; you can redistribute it and/or modify it under
+the same terms as Perl itself.
