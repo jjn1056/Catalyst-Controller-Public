@@ -97,6 +97,25 @@ Whether or not you want to serve directories (let people browse your public file
 [Catalyst](https://metacpan.org/pod/Catalyst) is in debug mode (via for example CATALYST\_DEBUG=1) this is automatically true.
 You can manually control this here if you want.
 
+## allowed\_extensions
+
+By default for security purposes we allow a white list of allowed file extensions to be served.
+The default list is reasonably extensive:
+
+     (qw/txt js jpg jpeg gif png css html gz jar mpg mp3 pdf qt rdf rtf cvs tsv xml zip ico/);
+
+and its stored in the package variable `@DEFAULT_ALLOWED_EXTENSIONS`.  You may add more types
+for example:
+
+    allowed_extensions => [
+      @Catalyst::Controller::Public::DEFAULT_ALLOWED_EXTENSIONS,
+      qw/my extra types/), ...
+
+Or you my restrict the list further to exactly only the file extention types you expect to
+serve
+
+...Or you may set this to 'undef', in which case we allow everything (you are on your own...).
+
 ## static\_base
 
 String.  Default: Value of $c->config->{root} (usually $APP\_HOME/root)

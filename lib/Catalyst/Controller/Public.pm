@@ -9,6 +9,7 @@ use Plack::App::File;
 extends 'Catalyst::Controller';
 
 our $VERSION = "0.001";
+our @DEFAULT_ALLOWED_EXTENSIONS = (qw/txt js jpg jpeg gif png css html gz jar mpg mp3 pdf qt rdf rtf cvs tsv xml zip ico/);
 
 has 'suppress_logs' => (is=>'ro', required=>1, default=>0);
 
@@ -22,6 +23,24 @@ has allow_directory_listing => (
     my $self = shift;
     return $self->_app->debug;
   }
+
+has allowed_extensions => (
+  is=>'ro',
+  isa=>'Maybe[ArrayRef]',
+  lazy=>1,
+  builder=>'_build_allowed_extensions');
+
+  sub _build_allowed_extensions { \@DEFAULT_ALLOWED_EXTENSIONS }
+
+has _regexp_compiled_allowed_extensions => (
+  is=>'ro',
+  required=>1,
+  lazy=>1,
+  default=> sub {
+    my $self = shift;
+    my $m = join "|", (@{$self->allowed_extensions||[]});
+    return qr/\.$m$/;
+  });
 
 has static_base => (
   is=>'ro',
@@ -84,6 +103,15 @@ has _static_server => (
 sub begin :Private {
   my ($self, $c) = @_;
   $c->log->abort(1) if $self->suppress_logs && $c->log->can('abort');
+
+  if($self->allowed_extensions) {
+    my $match = $self->_regexp_compiled_allowed_extensions;
+    unless($c->req->path =~m/$match/) {
+      my $forbidden = $self->_static_server->return_403;
+      $c->res->from_psgi_response($forbidden);
+      $c->detach;
+    }
+  }
 }
 
 sub serve_file :Path('') {  }
@@ -194,6 +222,25 @@ Boolean.  Default: $c->debug
 Whether or not you want to serve directories (let people browse your public filesystem).  If
 L<Catalyst> is in debug mode (via for example CATALYST_DEBUG=1) this is automatically true.
 You can manually control this here if you want.
+
+=head2 allowed_extensions
+
+By default for security purposes we allow a white list of allowed file extensions to be served.
+The default list is reasonably extensive:
+
+     (qw/txt js jpg jpeg gif png css html gz jar mpg mp3 pdf qt rdf rtf cvs tsv xml zip ico/);
+
+and its stored in the package variable C<@DEFAULT_ALLOWED_EXTENSIONS>.  You may add more types
+for example:
+
+    allowed_extensions => [
+      @Catalyst::Controller::Public::DEFAULT_ALLOWED_EXTENSIONS,
+      qw/my extra types/), ...
+
+Or you my restrict the list further to exactly only the file extention types you expect to
+serve
+
+...Or you may set this to 'undef', in which case we allow everything (you are on your own...).
 
 =head2 static_base
 
