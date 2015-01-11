@@ -1,68 +1,80 @@
 # TITLE
 
-Catalyst::Controller::Public - A controller to serve static files
+Catalyst::Controller::Public - A controller to serve static files from the public folder
 
 # SYNOPSIS
 
-```perl
-use warnings;
-use strict;
+    use warnings;
+    use strict;
 
-package MyApp::Controller::Static;
+    package MyApp::Controller::Static;
 
-use base 'Catalyst::Controller::Static';
+    use base 'Catalyst::Controller::Public';
 
-# localhost://favicon.ico => $HOME/root/static/favicon.ico
-sub favicon :Path('/favicon.ico') { }
+    # localhost/favicon.ico => $HOME/root/static/favicon.ico
+    sub favicon :Path('/favicon.ico') { }
 
-# localhost://css => $HOME/root/static/css
-sub css :Path('/css') { }
+    # localhost/css => $HOME/root/static/css
+    sub css :Path('/css') { }
 
-__PACKAGE__->meta->make_immutable;
-```
+    __PACKAGE__->meta->make_immutable;
 
 And This creates the following public and private endpoints
 
-```
-[debug] Loaded components:
-.-----------------------------------------------------------------+----------.
-| Class                                                           | Type     |
-+-----------------------------------------------------------------+----------+
-| MyApp::Controller::Static                                       | instance |
-'-----------------------------------------------------------------+----------'
+    .-----------------------------------------------------------------+----------.
+    | Class                                                           | Type     |
+    +-----------------------------------------------------------------+----------+
+    | MyApp::Controller::Static                                       | instance |
+    '-----------------------------------------------------------------+----------'
 
-[debug] Loaded Private actions:
-.----------------------+--------------------------------------+--------------.
-| Private              | Class                                | Method       |
-+----------------------+--------------------------------------+--------------+
-| /static/serve_file   | MyApp::Controller::Static            | serve_file   |
-| /static/favicon      | MyApp::Controller::Static            | favicon      |
-| /static/css          | MyApp::Controller::Static            | css          |
-| /static/end          | MyApp::Controller::Static            | end          |
-| /static/begin        | MyApp::Controller::Static            | begin        |
-'----------------------+--------------------------------------+--------------'
+    [debug] Loaded Private actions:
+    .----------------------+--------------------------------------+--------------.
+    | Private              | Class                                | Method       |
+    +----------------------+--------------------------------------+--------------+
+    | /static/favicon      | MyApp::Controller::Static            | favicon      |
+    | /static/serve_file   | MyApp::Controller::Static            | serve_file   |
+    | /static/css          | MyApp::Controller::Static            | css          |
+    | /static/end          | MyApp::Controller::Static            | end          |
+    | /static/begin        | MyApp::Controller::Static            | begin        |
+    '----------------------+--------------------------------------+--------------'
 
-[debug] Loaded Path actions:
-.-------------------------------------+--------------------------------------.
-| Path                                | Private                              |
-+-------------------------------------+--------------------------------------+
-| /css/...                            | /static/css                          |
-| /favicon.ico/...                    | /static/favicon                      |
-| /static/...                         | /static/serve_file                   |
-'-------------------------------------+--------------------------------------'
-```
+    [debug] Loaded Path actions:
+    .-------------------------------------+--------------------------------------.
+    | Path                                | Private                              |
+    +-------------------------------------+--------------------------------------+
+    | /css/...                            | /static/css                          |
+    | /favicon.ico/...                    | /static/favicon                      |
+    | /static/...                         | /static/serve_file                   |
+    '-------------------------------------+--------------------------------------'
+
+So the following URLs would be mapped as so:
+
+    localhost/css => $HOME/root/static/css
+    localhost/favicon.ico => $HOME/root/static/favicon.ico
+    localhost/static/a/b/c/d  => $HOME/root/static/a/b/c/d
 
 # DISCRIPTION
 
-I prefer to have a controller to manage static assets since I like to use $c->uri\_for
+I prefer to have a controller to manage public assets since I like to use $c->uri\_for
 and similar to construct paths.  Out of the box this controller does what I think is
-the mostly right thing, which is it serves static assets using [Plack::App::Directory](https://metacpan.org/pod/Plack::App::Directory)
-from $HOME/root/static and it also makes it easy to create private paths to public
-URLs in the way that makes sense to you.
+the mostly right thing, which is it serves public assets using [Plack::App::Directory](https://metacpan.org/pod/Plack::App::Directory)
+from $HOME/root/${controller-namespace} and it also makes it easy to create private
+paths to public URLs in the way that makes sense to you.
 
 If you inherit from this you will get a public URL endpoint which is the same as the
-controller's namespace.  That will serve files under your `static_path`, which just
+controller's namespace.  That will serve files under your `public_path`, which just
 defaults as already described.
+
+Althought this controller offers some configuration and features, unlike more complex
+systems (see [Catalyst::Controller::Assets](https://metacpan.org/pod/Catalyst::Controller::Assets) for example) we do not attempt to full
+on 'Rails Asset pipeline' approach, such as building LESS to css or compiling CoffeeScript
+to Javascript.  The intention here is to be simple enough for people to use it with
+out a lot of documentation pondering.  Also in my experience Javascript developers and
+designers prefer to use there own tools and code generation pipelines, over any that
+comes bundled with [Catalyst](https://metacpan.org/pod/Catalyst) (just an observation).  As a result this is aimed at
+serving up files that are ready to go.  The assumption is that your Javascript and designers
+will use their desired tools and build static versions of thier code into the correct
+directory.
 
 # CONFIGURATON
 
@@ -76,9 +88,9 @@ By default we suppress most of the Catalyst debugging output on the assumption t
 just clutter your terminal.  Set this to a false value (like 0) if you want to see all the
 full logs
 
-## static\_path
+## public\_path
 
-Full path to where your static root is.  Change this if its not in $HOME/root/static
+Full path to where your public root is.  Change this if its not in $HOME/root/public
 
 ## encoding
 
