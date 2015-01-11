@@ -24,4 +24,9 @@ use Catalyst::Test 'MyApp';
   is $res->content, "css css css\n";
 }
 
+{
+  ok my $res = request '/onchain/base.css';
+  is $res->content, "css css css\n";
+}
+
 done_testing;

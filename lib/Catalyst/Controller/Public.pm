@@ -13,6 +13,8 @@ our @DEFAULT_ALLOWED_EXTENSIONS = (qw/txt js jpg jpeg gif png css html gz jar mp
 
 has 'suppress_logs' => (is=>'ro', required=>1, default=>0);
 
+has 'no_default_action' => (is=>'ro', required=>1, isa=>'Bool', default=>0);
+
 has allow_directory_listing => (
   is=>'ro',
   required=>1,
@@ -87,17 +89,18 @@ has _static_server => (
   is=>'ro',
   required=>1,
   lazy=>1,
-  builder=>'_build_directory_app',
+  builder=>'_build_static_server',
   init_arg=>undef);
 
-  sub _build_directory_app {
+  sub _build_static_server {
     my $self = shift;
     my %args = (root => $self->static_path);
     my $class = $self->allow_directory_listing ? 'Plack::App::Directory' : 'Plack::App::File';
     $args{encoding} = $self->encoding if $self->has_encoding;
     $args{content_type} = $self->content_type if $self->has_content_type;
 
-    return Plack::App::Directory->new(\%args)->to_app;
+    $self->_app->log->debug("Static Path for ${\ref($self)} is ${\$self->static_path}");
+    return $class->new(\%args)->to_app;
   }
 
 sub begin :Private {
@@ -114,7 +117,18 @@ sub begin :Private {
   }
 }
 
-sub serve_file :Path('') {  }
+after 'register_actions' => sub {
+  my ($self, $c) = @_;
+  return if $self->no_default_action;
+  my $action = $self->create_action(
+    name => 'serve_file',
+    code => sub { },
+    reverse => $self->action_namespace . '/' .'serve_file',
+    namespace => $self->action_namespace,
+    class => ref($self),
+    attributes => {Path => [ $self->action_namespace ] });
+  $c->dispatcher->register( $c, $action );
+};
 
 sub end :Private {
   my ($self, $c) = @_;
@@ -213,7 +227,14 @@ Boolean.  Default: true.
 
 By default we suppress most of the Catalyst debugging output on the assumption that it would 
 just clutter your terminal.  Set this to a false value (like 0) if you want to see all the
-full logs.  Useful if your files are not being served as desired.
+full logs.  Useful if your files are not being served as desired and you want to debug what
+is happening.
+
+=head2 no_default_action
+
+By default we register an action that handles default paths on your Controller.  If you want
+to get fancy and have total control over how files get served (for example you want to have
+just a specific lists of allowed files associated with actions) you may disable this.
 
 =head2 allow_directory_listing
 
@@ -238,7 +259,9 @@ for example:
       qw/my extra types/), ...
 
 Or you my restrict the list further to exactly only the file extention types you expect to
-serve
+serve;
+
+    allowed_extensions => [qw/css js jpg png img/],
 
 ...Or you may set this to 'undef', in which case we allow everything (you are on your own...).
 
@@ -272,6 +295,22 @@ the public files.
 
 These get passed down to L<Plack::App::Directory> which inherits them from L<Plack::App::File>
 so review that package for more information
+
+=head1 ACTIONS
+
+This Controller defines the following actions.
+
+=head2 begin
+
+=head2 end
+
+Used to determined file eligibility and serve a file from the target directory.
+
+=head2 serve_file
+
+(Exists by default).  Catchall actions for the controller.  Will match anything that
+other more specific actions fail to catch.  Tends to have higher priority than
+chained actions (you might need to disable this if using chained actions).
 
 =head1 AUTHOR
  
