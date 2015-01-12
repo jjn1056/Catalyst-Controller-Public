@@ -1,9 +1,9 @@
-use warnings;
-use strict;
-
 package MyApp::Controller::Static;
 
-use base 'Catalyst::Controller::Public';
+use Moose;
+use MooseX::MethodAttributes;
+
+extends  'Catalyst::Controller::Public';
 
 sub favicon :Path('/favicon.ico') { }
 

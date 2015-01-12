@@ -1,142 +1,13 @@
 package Catalyst::Controller::Public;
 
 use Moose;
-use MooseX::MethodAttributes;
-use Catalyst::Utils;
-use Plack::App::Directory;
-use Plack::App::File;
 
-extends 'Catalyst::Controller';
+extends qw/Catalyst::Controller/;
+with 'Catalyst::ControllerRole::Public';
 
 our $VERSION = "0.001";
-our @DEFAULT_ALLOWED_EXTENSIONS = (qw/txt js jpg jpeg gif png css html gz jar mpg mp3 pdf qt rdf rtf cvs tsv xml zip ico/);
 
-has 'suppress_logs' => (is=>'ro', required=>1, default=>0);
-
-has 'no_default_action' => (is=>'ro', required=>1, isa=>'Bool', default=>0);
-
-has allow_directory_listing => (
-  is=>'ro',
-  required=>1,
-  lazy=>1,
-  builder=>'_build_allow_directory_listing');
-
-  sub _build_allow_directory_listing {
-    my $self = shift;
-    return $self->_app->debug;
-  }
-
-has allowed_extensions => (
-  is=>'ro',
-  isa=>'Maybe[ArrayRef]',
-  lazy=>1,
-  builder=>'_build_allowed_extensions');
-
-  sub _build_allowed_extensions { \@DEFAULT_ALLOWED_EXTENSIONS }
-
-has _regexp_compiled_allowed_extensions => (
-  is=>'ro',
-  required=>1,
-  lazy=>1,
-  default=> sub {
-    my $self = shift;
-    my $m = join "|", (@{$self->allowed_extensions||[]});
-    return qr/\.$m$/;
-  });
-
-has static_base => (
-  is=>'ro',
-  required=>1,
-  lazy=>1,
-  builder=>'_build_static_base');
-
-  sub _build_static_base {
-    my $self = shift;
-    return File::Spec->catdir($self->_app->config->{root});
-  }
-
-has static_parts => (
-  is=>'ro',
-  required=>1,
-  lazy=>1,
-  builder=>'_build_static_parts');
-
-  sub _build_static_parts {
-    my $self = shift;
-    my @parts = split '/', $self->action_namespace;
-    return File::Spec->catdir(@parts);
-  }
-
-has static_path =>  (
-  is=>'ro',
-  init_arg => undef,
-  required=>1,
-  lazy=>1,
-  builder=>'_build_static_path');
-
-  sub _build_static_path {
-    my $self = shift;
-    return File::Spec->catdir(
-      $self->static_base,
-        $self->static_parts);
-  }
-
-
-has 'encoding' => (is=>'ro', predicate=>'has_encoding');
-has 'content_type' => (is=>'ro', predicate=>'has_content_type');
-
-has _static_server => (
-  is=>'ro',
-  required=>1,
-  lazy=>1,
-  builder=>'_build_static_server',
-  init_arg=>undef);
-
-  sub _build_static_server {
-    my $self = shift;
-    my %args = (root => $self->static_path);
-    my $class = $self->allow_directory_listing ? 'Plack::App::Directory' : 'Plack::App::File';
-    $args{encoding} = $self->encoding if $self->has_encoding;
-    $args{content_type} = $self->content_type if $self->has_content_type;
-
-    $self->_app->log->debug("Static Path for ${\ref($self)} is ${\$self->static_path}");
-    return $class->new(\%args)->to_app;
-  }
-
-sub begin :Private {
-  my ($self, $c) = @_;
-  $c->log->abort(1) if $self->suppress_logs && $c->log->can('abort');
-
-  if($self->allowed_extensions) {
-    my $match = $self->_regexp_compiled_allowed_extensions;
-    unless($c->req->path =~m/$match/) {
-      my $forbidden = $self->_static_server->return_403;
-      $c->res->from_psgi_response($forbidden);
-      $c->detach;
-    }
-  }
-}
-
-after 'register_actions' => sub {
-  my ($self, $c) = @_;
-  return if $self->no_default_action;
-  my $action = $self->create_action(
-    name => 'serve_file',
-    code => sub { },
-    reverse => $self->action_namespace . '/' .'serve_file',
-    namespace => $self->action_namespace,
-    class => ref($self),
-    attributes => {Path => [ $self->action_namespace ] });
-  $c->dispatcher->register( $c, $action );
-};
-
-sub end :Private {
-  my ($self, $c) = @_;
-  my $env = $c->Catalyst::Utils::env_at_path_prefix;
-  $c->res->from_psgi_response($self->_static_server->($env));
-}
-
-__PACKAGE__->meta->make_immutable;
+1;
 
 =head1 TITLE
 
@@ -156,8 +27,6 @@ Catalyst::Controller::Public - A controller to serve static files from the publi
 
     # localhost/css => $HOME/root/static/css
     sub css :Path('/css') { }
-
-    __PACKAGE__->meta->make_immutable;
 
 And This creates the following public and private endpoints
 
@@ -193,7 +62,15 @@ So the following URLs would be mapped as so:
     localhost/favicon.ico => $HOME/root/static/favicon.ico
     localhost/static/a/b/c/d  => $HOME/root/static/a/b/c/d
 
+And you can use $c->uri_for for making links:
+
+    $c->uri_for($c->controller('static')->action_for('serve_file', 'base.css'));
+
 =head1 DISCRIPTION
+
+B<Note>This class just extends L<Catalyst::ControllerRole::Public>.  All the main
+code is in that role.  You can do the same if it makes sense based on your programming
+organization needs.
 
 I prefer to have a controller to manage public assets since I like to use $c->uri_for
 and similar to construct paths.  Out of the box this controller does what I think is
@@ -219,98 +96,11 @@ directory.
 
 =head1 CONFIGURATON
 
-If you must change things ( :) ) you have the following configuraiton options
-
-=head2 suppress_logs
-
-Boolean.  Default: true.
-
-By default we suppress most of the Catalyst debugging output on the assumption that it would 
-just clutter your terminal.  Set this to a false value (like 0) if you want to see all the
-full logs.  Useful if your files are not being served as desired and you want to debug what
-is happening.
-
-=head2 no_default_action
-
-By default we register an action that handles default paths on your Controller.  If you want
-to get fancy and have total control over how files get served (for example you want to have
-just a specific lists of allowed files associated with actions) you may disable this.
-
-=head2 allow_directory_listing
-
-Boolean.  Default: $c->debug
-
-Whether or not you want to serve directories (let people browse your public filesystem).  If
-L<Catalyst> is in debug mode (via for example CATALYST_DEBUG=1) this is automatically true.
-You can manually control this here if you want.
-
-=head2 allowed_extensions
-
-By default for security purposes we allow a white list of allowed file extensions to be served.
-The default list is reasonably extensive:
-
-     (qw/txt js jpg jpeg gif png css html gz jar mpg mp3 pdf qt rdf rtf cvs tsv xml zip ico/);
-
-and its stored in the package variable C<@DEFAULT_ALLOWED_EXTENSIONS>.  You may add more types
-for example:
-
-    allowed_extensions => [
-      @Catalyst::Controller::Public::DEFAULT_ALLOWED_EXTENSIONS,
-      qw/my extra types/), ...
-
-Or you my restrict the list further to exactly only the file extention types you expect to
-serve;
-
-    allowed_extensions => [qw/css js jpg png img/],
-
-...Or you may set this to 'undef', in which case we allow everything (you are on your own...).
-
-=head2 static_base
-
-String.  Default: Value of $c->config->{root} (usually $APP_HOME/root)
-
-The base part of where files will be served.  This will be combined with L</static_parts>
-to determine the true root of your public files.
-
-=head2 static_parts
-
-String. Default to controller action namespace.
-
-Completes the path to the directory where files are served from.  For example if your
-$c->config->{root} = "/home/developer/MyApp/root" and your controller is "MyApp::Controller::Static"
-this will point to:
-
-    /home/developer/MyApp/root/static
-
-Since in this case your action namespace is static.
-
-=head2 static_path
-
-This is a read only accessor that gives you the full path to the directory where we will serve
-the public files.
-
-=head2 encoding
-
-=head2 content_type
-
-These get passed down to L<Plack::App::Directory> which inherits them from L<Plack::App::File>
-so review that package for more information
+See L<Catalyst::ControllerRole::Public>.
 
 =head1 ACTIONS
 
-This Controller defines the following actions.
-
-=head2 begin
-
-=head2 end
-
-Used to determined file eligibility and serve a file from the target directory.
-
-=head2 serve_file
-
-(Exists by default).  Catchall actions for the controller.  Will match anything that
-other more specific actions fail to catch.  Tends to have higher priority than
-chained actions (you might need to disable this if using chained actions).
+See L<Catalyst::ControllerRole::Public>.
 
 =head1 AUTHOR
  

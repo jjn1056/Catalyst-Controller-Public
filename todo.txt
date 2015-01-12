@@ -1,0 +1,4 @@
+- add caching and etag headers
+- ditch P:App::File/Directory?
+- better control over not found and other error templates.
+- ActionRole Publc    :Public :PublicParts()  :PublicArgs()
