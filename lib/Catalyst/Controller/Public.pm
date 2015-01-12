@@ -68,7 +68,7 @@ And you can use $c->uri_for for making links:
 
 =head1 DISCRIPTION
 
-B<Note>This class just extends L<Catalyst::ControllerRole::Public>.  All the main
+B<Note:> This class just extends L<Catalyst::ControllerRole::Public>.  All the main
 code is in that role.  You can do the same if it makes sense based on your programming
 organization needs.
 
@@ -108,7 +108,8 @@ John Napiorkowski L<email:jjnapiork@cpan.org>
   
 =head1 SEE ALSO
  
-L<Catalyst>, L<Catalyst::Controller>, L<Plack::App::Directory>.
+L<Catalyst>, L<Catalyst::Controller>, L<Plack::App::Directory>,
+L<Catalyst::Controller::Assets>.
  
 =head1 COPYRIGHT & LICENSE
  

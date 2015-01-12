@@ -5,11 +5,12 @@ use MooseX::MethodAttributes::Role;
 use Catalyst::Utils;
 use Plack::App::Directory;
 use Plack::App::File;
+use Plack::MIME;
 
 with 'MooseX::MethodAttributes::Role::AttrContainer::Inheritable';
 
 our $VERSION = "0.001";
-our @DEFAULT_ALLOWED_EXTENSIONS = (qw/txt js jpg jpeg gif png css html gz jar mpg mp3 pdf qt rdf rtf cvs tsv xml zip ico/);
+our @DEFAULT_ALLOWED_EXTENSIONS = (keys %{$Plack::MIME::MIME_TYPES});
 
 requires 'register_actions';
 
@@ -34,17 +35,32 @@ has allowed_extensions => (
   lazy=>1,
   builder=>'_build_allowed_extensions');
 
-  sub _build_allowed_extensions { \@DEFAULT_ALLOWED_EXTENSIONS }
+  sub _build_allowed_extensions {
+    my $self = shift;
+    if($self->has_content_type) {
+      my @extensions = ();
+      while(my ($key, $value) = each %{$Plack::MIME::MIME_TYPES}) {
+        push @extensions, $key if lc($value) eq lc($self->content_type);
+      }
+      $self->_app->log->error("No extensions found for content type '${\$self->content_type}' in ${\ref($self)}")
+        unless scalar(@extensions);
+      return [\@extensions];
+    } else {
+      return my $allowed = \@DEFAULT_ALLOWED_EXTENSIONS;
+    }
+  }
 
 has _regexp_compiled_allowed_extensions => (
   is=>'ro',
   required=>1,
   lazy=>1,
-  default=> sub {
+  builder=>'_build_regexp_compiled_allowed_extensions');
+
+  sub _build_regexp_compiled_allowed_extensions {
     my $self = shift;
     my $m = join "|", (@{$self->allowed_extensions||[]});
-    return qr/\.$m$/;
-  });
+    return my $qr = qr/($m)$/;
+  }
 
 has static_base => (
   is=>'ro',
@@ -83,7 +99,6 @@ has static_path =>  (
         $self->static_parts);
   }
 
-
 has 'encoding' => (is=>'ro', predicate=>'has_encoding');
 has 'content_type' => (is=>'ro', predicate=>'has_content_type');
 
@@ -101,7 +116,7 @@ has _static_server => (
     $args{encoding} = $self->encoding if $self->has_encoding;
     $args{content_type} = $self->content_type if $self->has_content_type;
 
-    $self->_app->log->debug("Static Path for ${\ref($self)} is ${\$self->static_path}");
+    $self->_app->log->debug("Static Path for ${\ref($self)} is ${\$self->static_path}") if $self->_app->debug;
     return $class->new(\%args)->to_app;
   }
 
@@ -112,9 +127,9 @@ sub begin :Private {
   if($self->allowed_extensions) {
     my $match = $self->_regexp_compiled_allowed_extensions;
     unless($c->req->path =~m/$match/) {
-      my $forbidden = $self->_static_server->return_403;
-      $c->res->from_psgi_response($forbidden);
+      $c->res->from_psgi_response([403, ['Content-Type' => 'text/plain', 'Content-Length' => 9], ['forbidden']]);
       $c->detach;
+      return;
     }
   }
 }
@@ -134,8 +149,10 @@ after 'register_actions' => sub {
 
 sub end :Private {
   my ($self, $c) = @_;
-  my $env = $c->Catalyst::Utils::env_at_path_prefix;
-  $c->res->from_psgi_response($self->_static_server->($env));
+  unless($c->res->body) {
+    my $env = $c->Catalyst::Utils::env_at_path_prefix;
+    $c->res->from_psgi_response($self->_static_server->($env));
+  }
 }
 
 1;
@@ -252,15 +269,11 @@ You can manually control this here if you want.
 =head2 allowed_extensions
 
 By default for security purposes we allow a white list of allowed file extensions to be served.
-The default list is reasonably extensive:
-
-     (qw/txt js jpg jpeg gif png css html gz jar mpg mp3 pdf qt rdf rtf cvs tsv xml zip ico/);
-
-and its stored in the package variable C<@DEFAULT_ALLOWED_EXTENSIONS>.  You may add more types
-for example:
+The default list is reasonably extensive and is taken from L<Plack::MIME>.  Its stored in the
+package variable C<@DEFAULT_ALLOWED_EXTENSIONS>.  You may add more types for example:
 
     allowed_extensions => [
-      @Catalyst::Controller::Public::DEFAULT_ALLOWED_EXTENSIONS,
+      @Catalyst::ControllerRole::Public::DEFAULT_ALLOWED_EXTENSIONS,
       qw/my extra types/), ...
 
 Or you my restrict the list further to exactly only the file extention types you expect to
@@ -269,6 +282,9 @@ serve;
     allowed_extensions => [qw/css js jpg png img/],
 
 ...Or you may set this to 'undef', in which case we allow everything (you are on your own...).
+
+B<NOTE:> If you set a L</content_type> then we set the allowed extensions to only those that
+are associated with the MIME type by default (and you can override if you find that wise).
 
 =head2 static_base
 
@@ -319,17 +335,10 @@ chained actions (you might need to disable this if using chained actions).
 
 =head1 AUTHOR
  
-John Napiorkowski L<email:jjnapiork@cpan.org>
-  
-=head1 SEE ALSO
- 
-L<Catalyst>, L<Catalyst::Controller>, L<Plack::App::Directory>.
- 
+See L<Catalyst::Controller::Public>
+
 =head1 COPYRIGHT & LICENSE
  
-Copyright 2015, John Napiorkowski L<email:jjnapiork@cpan.org>
- 
-This library is free software; you can redistribute it and/or modify it under
-the same terms as Perl itself.
+See L<Catalyst::Controller::Public>
 
 =cut

@@ -39,4 +39,9 @@ use Catalyst::Test 'MyApp';
   is $res->content, "css css css\n";
 }
 
+{
+  ok my $res = request '/role/example/base.xxx';
+  is $res->code, 403;
+}
+
 done_testing;
