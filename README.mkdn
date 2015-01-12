@@ -17,8 +17,6 @@ Catalyst::Controller::Public - A controller to serve static files from the publi
     # localhost/css => $HOME/root/static/css
     sub css :Path('/css') { }
 
-    __PACKAGE__->meta->make_immutable;
-
 And This creates the following public and private endpoints
 
     .-----------------------------------------------------------------+----------.
@@ -53,7 +51,15 @@ So the following URLs would be mapped as so:
     localhost/favicon.ico => $HOME/root/static/favicon.ico
     localhost/static/a/b/c/d  => $HOME/root/static/a/b/c/d
 
+And you can use $c->uri\_for for making links:
+
+    $c->uri_for($c->controller('static')->action_for('serve_file', 'base.css'));
+
 # DISCRIPTION
+
+**Note**This class just extends [Catalyst::ControllerRole::Public](https://metacpan.org/pod/Catalyst::ControllerRole::Public).  All the main
+code is in that role.  You can do the same if it makes sense based on your programming
+organization needs.
 
 I prefer to have a controller to manage public assets since I like to use $c->uri\_for
 and similar to construct paths.  Out of the box this controller does what I think is
@@ -79,73 +85,11 @@ directory.
 
 # CONFIGURATON
 
-If you must change things ( :) ) you have the following configuraiton options
+See [Catalyst::ControllerRole::Public](https://metacpan.org/pod/Catalyst::ControllerRole::Public).
 
-## suppress\_logs
+# ACTIONS
 
-Boolean.  Default: true.
-
-By default we suppress most of the Catalyst debugging output on the assumption that it would 
-just clutter your terminal.  Set this to a false value (like 0) if you want to see all the
-full logs.  Useful if your files are not being served as desired.
-
-## allow\_directory\_listing
-
-Boolean.  Default: $c->debug
-
-Whether or not you want to serve directories (let people browse your public filesystem).  If
-[Catalyst](https://metacpan.org/pod/Catalyst) is in debug mode (via for example CATALYST\_DEBUG=1) this is automatically true.
-You can manually control this here if you want.
-
-## allowed\_extensions
-
-By default for security purposes we allow a white list of allowed file extensions to be served.
-The default list is reasonably extensive:
-
-     (qw/txt js jpg jpeg gif png css html gz jar mpg mp3 pdf qt rdf rtf cvs tsv xml zip ico/);
-
-and its stored in the package variable `@DEFAULT_ALLOWED_EXTENSIONS`.  You may add more types
-for example:
-
-    allowed_extensions => [
-      @Catalyst::Controller::Public::DEFAULT_ALLOWED_EXTENSIONS,
-      qw/my extra types/), ...
-
-Or you my restrict the list further to exactly only the file extention types you expect to
-serve
-
-...Or you may set this to 'undef', in which case we allow everything (you are on your own...).
-
-## static\_base
-
-String.  Default: Value of $c->config->{root} (usually $APP\_HOME/root)
-
-The base part of where files will be served.  This will be combined with ["static\_parts"](#static_parts)
-to determine the true root of your public files.
-
-## static\_parts
-
-String. Default to controller action namespace.
-
-Completes the path to the directory where files are served from.  For example if your
-$c->config->{root} = "/home/developer/MyApp/root" and your controller is "MyApp::Controller::Static"
-this will point to:
-
-    /home/developer/MyApp/root/static
-
-Since in this case your action namespace is static.
-
-## static\_path
-
-This is a read only accessor that gives you the full path to the directory where we will serve
-the public files.
-
-## encoding
-
-## content\_type
-
-These get passed down to [Plack::App::Directory](https://metacpan.org/pod/Plack::App::Directory) which inherits them from [Plack::App::File](https://metacpan.org/pod/Plack::App::File)
-so review that package for more information
+See [Catalyst::ControllerRole::Public](https://metacpan.org/pod/Catalyst::ControllerRole::Public).
 
 # AUTHOR
 
