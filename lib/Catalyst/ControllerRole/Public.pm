@@ -11,6 +11,10 @@ with 'MooseX::MethodAttributes::Role::AttrContainer::Inheritable';
 
 our $VERSION = "0.001";
 our @DEFAULT_ALLOWED_EXTENSIONS = (keys %{$Plack::MIME::MIME_TYPES});
+our %MIME_TO_EXT = ();
+while(my ($key, $value) = each %{$Plack::MIME::MIME_TYPES}) {
+  push @{$MIME_TO_EXT{lc($value)}}, $key;
+}
 
 requires 'register_actions';
 
@@ -38,10 +42,7 @@ has allowed_extensions => (
   sub _build_allowed_extensions {
     my $self = shift;
     if($self->has_content_type) {
-      my @extensions = ();
-      while(my ($key, $value) = each %{$Plack::MIME::MIME_TYPES}) {
-        push @extensions, $key if lc($value) eq lc($self->content_type);
-      }
+      my @extensions = @{$MIME_TO_EXT{lc($self->content_type)}||[]};
       $self->_app->log->error("No extensions found for content type '${\$self->content_type}' in ${\ref($self)}")
         unless scalar(@extensions);
       return [\@extensions];
@@ -62,41 +63,41 @@ has _regexp_compiled_allowed_extensions => (
     return my $qr = qr/($m)$/;
   }
 
-has static_base => (
+has public_base => (
   is=>'ro',
   required=>1,
   lazy=>1,
-  builder=>'_build_static_base');
+  builder=>'_build_public_base');
 
-  sub _build_static_base {
+  sub _build_public_base {
     my $self = shift;
     return File::Spec->catdir($self->_app->config->{root});
   }
 
-has static_parts => (
+has public_parts => (
   is=>'ro',
   required=>1,
   lazy=>1,
-  builder=>'_build_static_parts');
+  builder=>'_build_public_parts');
 
-  sub _build_static_parts {
+  sub _build_public_parts {
     my $self = shift;
     my @parts = split '/', $self->action_namespace;
     return File::Spec->catdir(@parts);
   }
 
-has static_path =>  (
+has public_path =>  (
   is=>'ro',
   init_arg => undef,
   required=>1,
   lazy=>1,
-  builder=>'_build_static_path');
+  builder=>'_build_public_path');
 
-  sub _build_static_path {
+  sub _build_public_path {
     my $self = shift;
     return File::Spec->catdir(
-      $self->static_base,
-        $self->static_parts);
+      $self->public_base,
+        $self->public_parts);
   }
 
 has 'encoding' => (is=>'ro', predicate=>'has_encoding');
@@ -111,12 +112,12 @@ has _static_server => (
 
   sub _build_static_server {
     my $self = shift;
-    my %args = (root => $self->static_path);
+    my %args = (root => $self->public_path);
     my $class = $self->allow_directory_listing ? 'Plack::App::Directory' : 'Plack::App::File';
     $args{encoding} = $self->encoding if $self->has_encoding;
     $args{content_type} = $self->content_type if $self->has_content_type;
 
-    $self->_app->log->debug("Static Path for ${\ref($self)} is ${\$self->static_path}") if $self->_app->debug;
+    $self->_app->log->debug("Static Path for ${\ref($self)} is ${\$self->public_path}") if $self->_app->debug;
     return $class->new(\%args)->to_app;
   }
 
@@ -124,12 +125,20 @@ sub begin :Private {
   my ($self, $c) = @_;
   $c->log->abort(1) if $self->suppress_logs && $c->log->can('abort');
 
+  if(my ($content_type) = (@{$c->action->attributes->{ContentType}||[]})) {
+    my $m = $c->action->{_compiled_ct_regexp} ||= do { join '|', @{$MIME_TO_EXT{lc($content_type)}||[]} };
+    unless($c->req->path =~m/($m)$/) {
+      $c->res->from_psgi_response([403, ['Content-Type' => 'text/plain', 'Content-Length' => 9], ['forbidden']]);
+      $c->detach;
+    }
+    return;
+  }
+
   if($self->allowed_extensions) {
     my $match = $self->_regexp_compiled_allowed_extensions;
     unless($c->req->path =~m/$match/) {
       $c->res->from_psgi_response([403, ['Content-Type' => 'text/plain', 'Content-Length' => 9], ['forbidden']]);
       $c->detach;
-      return;
     }
   }
 }
@@ -151,7 +160,12 @@ sub end :Private {
   my ($self, $c) = @_;
   unless($c->res->body) {
     my $env = $c->Catalyst::Utils::env_at_path_prefix;
+    my ($path_info) = (@{$c->action->attributes->{File}||[]});
+    $env->{PATH_INFO} = $path_info if $path_info;
     $c->res->from_psgi_response($self->_static_server->($env));
+    do { $c->res->body(undef); $c->go('bad_request') } if($c->res->code == 400 and $self->action_for('bad_request'));
+    do { $c->res->body(undef); $c->go('forbidden') } if($c->res->code == 403 and $self->action_for('forbidden'));
+    do { $c->res->body(undef); $c->go('not_found') } if($c->res->code == 404 and $self->action_for('not_found'));
   }
 }
 
@@ -239,6 +253,15 @@ serving up files that are ready to go.  The assumption is that your Javascript a
 will use their desired tools and build static versions of thier code into the correct
 directory.
 
+=head1 DEFINING ACTIONS
+
+You may define actions in this controller, although by default the 'serve_file' action
+(if allowed) will catch and serve static files from the public directory without
+you needing to do anything.  You may define actions that expose alternative public
+URLs mapped to the public directory, as show in the SYNOPSIS example.  Also, if you add
+an action that supplies a body response, we don't attempt to serve a file (use this
+for your custom responses).
+
 =head1 CONFIGURATON
 
 If you must change things ( :) ) you have the following configuration options
@@ -286,14 +309,14 @@ serve;
 B<NOTE:> If you set a L</content_type> then we set the allowed extensions to only those that
 are associated with the MIME type by default (and you can override if you find that wise).
 
-=head2 static_base
+=head2 public_base
 
 String.  Default: Value of $c->config->{root} (usually $APP_HOME/root)
 
-The base part of where files will be served.  This will be combined with L</static_parts>
+The base part of where files will be served.  This will be combined with L</public_parts>
 to determine the true root of your public files.
 
-=head2 static_parts
+=head2 public_parts
 
 String. Default to controller action namespace.
 
@@ -305,7 +328,7 @@ this will point to:
 
 Since in this case your action namespace is static.
 
-=head2 static_path
+=head2 public_path
 
 This is a read only accessor that gives you the full path to the directory where we will serve
 the public files.
@@ -331,7 +354,36 @@ Used to determined file eligibility and serve a file from the target directory.
 
 (Exists by default).  Catchall actions for the controller.  Will match anything that
 other more specific actions fail to catch.  Tends to have higher priority than
-chained actions (you might need to disable this if using chained actions).
+chained actions (you might need to disable this if using chained actions in your
+public controllers).
+
+This will probably be your action target for $c->uri_for.
+
+=head1 ACTION ATTRIBUTES
+
+Actions under a controller that uses this role will recognize the the following
+attributes.
+
+=head2 File
+
+Example
+
+    package MyApp::Controller::Foo;
+
+    use Moose;
+    use MooseX::MethodAttributes;
+
+    extends 'Catalyst::Controller';
+    with 'Catalyst::ControllerRole::Public';
+
+    # http://localhost/foo/not_found => $c->{root} . '/foo' . 'not_found.txt'
+    sub not_found :Local File(not_found.txt) { }
+
+Lets you name the file you are serving from th Public URL.
+
+=head2 ContentType
+
+Specify the return content type (and allowed extensions) for the action.
 
 =head1 AUTHOR
  

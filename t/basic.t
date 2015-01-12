@@ -44,4 +44,21 @@ use Catalyst::Test 'MyApp';
   is $res->code, 403;
 }
 
+{
+  ok my $res = request '/static/noooootfound.txt';
+  is $res->code, 200;
+  $res->content, 'example';
+}
+
+{
+  ok my $res = request '/static/mylocal/a.html';
+  is $res->code, 200;
+  $res->content, 'example';
+}
+
+{
+  ok my $res = request '/static/mylocal/b.txt';
+  is $res->code, 403;
+}
+
 done_testing;
