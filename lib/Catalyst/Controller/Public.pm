@@ -15,6 +15,21 @@ Catalyst::Controller::Public - A controller to serve static files from the publi
 
 =head1 SYNOPSIS
 
+Simple Case:
+
+    use warnings;
+    use strict;
+
+    package MyApp::Controller::Public;
+
+    use base 'Catalyst::Controller::Public';
+
+    1;
+
+    # http://localhost/public/* => $c->{root}/public/*
+
+Custom Case:
+
     use warnings;
     use strict;
 
@@ -66,7 +81,7 @@ And you can use $c->uri_for for making links:
 
     $c->uri_for($c->controller('static')->action_for('serve_file', 'base.css'));
 
-=head1 DISCRIPTION
+=head1 DESCRIPTION
 
 B<Note:> This class just extends L<Catalyst::ControllerRole::Public>.  All the main
 code is in that role.  You can do the same if it makes sense based on your programming

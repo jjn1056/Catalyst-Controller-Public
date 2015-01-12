@@ -229,7 +229,7 @@ And you can use $c->uri_for for making links:
 
     $c->uri_for($c->controller('static')->action_for('serve_file', 'base.css'));
 
-=head1 DISCRIPTION
+=head1 DESCRIPTION
 
 I prefer to have a controller to manage public assets since I like to use $c->uri_for
 and similar to construct paths.  Out of the box this controller-role does what I think is
