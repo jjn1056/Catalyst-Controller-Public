@@ -57,7 +57,7 @@ And you can use $c->uri\_for for making links:
 
 # DISCRIPTION
 
-**Note**This class just extends [Catalyst::ControllerRole::Public](https://metacpan.org/pod/Catalyst::ControllerRole::Public).  All the main
+**Note:** This class just extends [Catalyst::ControllerRole::Public](https://metacpan.org/pod/Catalyst::ControllerRole::Public).  All the main
 code is in that role.  You can do the same if it makes sense based on your programming
 organization needs.
 
@@ -97,7 +97,8 @@ John Napiorkowski [email:jjnapiork@cpan.org](email:jjnapiork@cpan.org)
 
 # SEE ALSO
 
-[Catalyst](https://metacpan.org/pod/Catalyst), [Catalyst::Controller](https://metacpan.org/pod/Catalyst::Controller), [Plack::App::Directory](https://metacpan.org/pod/Plack::App::Directory).
+[Catalyst](https://metacpan.org/pod/Catalyst), [Catalyst::Controller](https://metacpan.org/pod/Catalyst::Controller), [Plack::App::Directory](https://metacpan.org/pod/Plack::App::Directory),
+[Catalyst::Controller::Assets](https://metacpan.org/pod/Catalyst::Controller::Assets).
 
 # COPYRIGHT & LICENSE
 

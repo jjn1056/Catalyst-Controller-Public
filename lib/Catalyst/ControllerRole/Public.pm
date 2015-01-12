@@ -359,6 +359,31 @@ public controllers).
 
 This will probably be your action target for $c->uri_for.
 
+=head1 OPTIONAL ACTIONS
+
+The following actions are optional and are used to customize error responses
+
+=head2 not_found
+
+=head2 forbidden
+
+=head2 bad_request
+
+Create an action with this name if you want custom control over the actual
+responses for the preceding errors.  For Example:
+
+    package MyApp::Controller::Static;
+
+    use Moose;
+    use MooseX::MethodAttributes;
+
+    extends 'Catalyst::Controller';
+    with 'Catalyst::ControllerRole::Public';
+
+    sub not_found :Action File(not_found.txt) { } ## $c->{root}/static/not_found.txt
+
+These cannot be private actions.
+
 =head1 ACTION ATTRIBUTES
 
 Actions under a controller that uses this role will recognize the the following
@@ -366,7 +391,7 @@ attributes.
 
 =head2 File
 
-Example
+Example:
 
     package MyApp::Controller::Foo;
 
@@ -379,11 +404,14 @@ Example
     # http://localhost/foo/not_found => $c->{root} . '/foo' . 'not_found.txt'
     sub not_found :Local File(not_found.txt) { }
 
-Lets you name the file you are serving from th Public URL.
+Lets you name the file you are serving from the Public URL.
 
 =head2 ContentType
 
-Specify the return content type (and allowed extensions) for the action.
+Specify the return content type (and allowed extensions) for the action.  Otherwise
+serve all allowed types and guess the entension.
+
+    sub html :Local ContentType(text/html) { }
 
 =head1 AUTHOR
  
