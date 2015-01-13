@@ -1,6 +1,6 @@
 # TITLE
 
-Catalyst::Controller::Public - A controller to serve static files from the public folder
+Catalyst::Controller::Public - A controller to serve static files from a public URL
 
 # SYNOPSIS
 

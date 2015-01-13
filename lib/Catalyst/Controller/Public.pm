@@ -11,7 +11,7 @@ our $VERSION = "0.002";
 
 =head1 TITLE
 
-Catalyst::Controller::Public - A controller to serve static files from the public folder
+Catalyst::Controller::Public - A controller to serve static files from a public URL
 
 =head1 SYNOPSIS
 

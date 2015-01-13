@@ -173,7 +173,7 @@ sub end :Private {
 
 =head1 TITLE
 
-Catalyst::ControllerRole::Public - A controller to serve static files from the public folder
+Catalyst::ControllerRole::Public - A controller-role to add static file serving to your controller
 
 =head1 SYNOPSIS
 
