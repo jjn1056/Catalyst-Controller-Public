@@ -5,7 +5,7 @@ use Moose;
 extends qw/Catalyst::Controller/;
 with 'Catalyst::ControllerRole::Public';
 
-our $VERSION = "0.001";
+our $VERSION = "0.002";
 
 1;
 
@@ -56,7 +56,7 @@ And This creates the following public and private endpoints
     | Private              | Class                                | Method       |
     +----------------------+--------------------------------------+--------------+
     | /static/favicon      | MyApp::Controller::Static            | favicon      |
-    | /static/serve_file   | MyApp::Controller::Static            | serve_file   |
+    | /static/at   | MyApp::Controller::Static            | at   |
     | /static/css          | MyApp::Controller::Static            | css          |
     | /static/end          | MyApp::Controller::Static            | end          |
     | /static/begin        | MyApp::Controller::Static            | begin        |
@@ -68,7 +68,7 @@ And This creates the following public and private endpoints
     +-------------------------------------+--------------------------------------+
     | /css/...                            | /static/css                          |
     | /favicon.ico/...                    | /static/favicon                      |
-    | /static/...                         | /static/serve_file                   |
+    | /static/...                         | /static/at                   |
     '-------------------------------------+--------------------------------------'
 
 So the following URLs would be mapped as so:
@@ -79,7 +79,7 @@ So the following URLs would be mapped as so:
 
 And you can use $c->uri_for for making links:
 
-    $c->uri_for($c->controller('static')->action_for('serve_file', 'base.css'));
+    $c->uri_for($c->controller('Static')->action_for('at'), 'base.css');
 
 =head1 DESCRIPTION
 

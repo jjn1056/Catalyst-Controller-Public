@@ -147,9 +147,9 @@ after 'register_actions' => sub {
   my ($self, $c) = @_;
   return if $self->no_default_action;
   my $action = $self->create_action(
-    name => 'serve_file',
+    name => 'at',
     code => sub { },
-    reverse => $self->action_namespace . '/' .'serve_file',
+    reverse => $self->action_namespace . '/' .'at',
     namespace => $self->action_namespace,
     class => ref($self),
     attributes => {Path => [ $self->action_namespace ] });
@@ -204,7 +204,7 @@ And This creates the following public and private endpoints
     | Private              | Class                                | Method       |
     +----------------------+--------------------------------------+--------------+
     | /static/favicon      | MyApp::Controller::Static            | favicon      |
-    | /static/serve_file   | MyApp::Controller::Static            | serve_file   |
+    | /static/at   | MyApp::Controller::Static            | at   |
     | /static/css          | MyApp::Controller::Static            | css          |
     | /static/end          | MyApp::Controller::Static            | end          |
     | /static/begin        | MyApp::Controller::Static            | begin        |
@@ -216,7 +216,7 @@ And This creates the following public and private endpoints
     +-------------------------------------+--------------------------------------+
     | /css/...                            | /static/css                          |
     | /favicon.ico/...                    | /static/favicon                      |
-    | /static/...                         | /static/serve_file                   |
+    | /static/...                         | /static/at                   |
     '-------------------------------------+--------------------------------------'
 
 So the following URLs would be mapped as so:
@@ -227,7 +227,7 @@ So the following URLs would be mapped as so:
 
 And you can use $c->uri_for for making links:
 
-    $c->uri_for($c->controller('static')->action_for('serve_file', 'base.css'));
+    $c->uri_for($c->controller('Static')->action_for('at'), 'base.css');
 
 =head1 DESCRIPTION
 
@@ -255,7 +255,7 @@ directory.
 
 =head1 DEFINING ACTIONS
 
-You may define actions in this controller, although by default the 'serve_file' action
+You may define actions in this controller, although by default the 'at' action
 (if allowed) will catch and serve static files from the public directory without
 you needing to do anything.  You may define actions that expose alternative public
 URLs mapped to the public directory, as show in the SYNOPSIS example.  Also, if you add
@@ -350,7 +350,7 @@ This Controller defines the following actions.
 
 Used to determined file eligibility and serve a file from the target directory.
 
-=head2 serve_file
+=head2 at
 
 (Exists by default).  Catchall actions for the controller.  Will match anything that
 other more specific actions fail to catch.  Tends to have higher priority than
