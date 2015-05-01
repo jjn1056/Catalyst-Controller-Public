@@ -3,7 +3,7 @@ package Catalyst::Controller::Public;
 use Moose;
 extends 'Catalyst::Controller';
 
-our $VERSION = '0.002';
+our $VERSION = '0.003';
 
 has show_debugging => (is=>'ro', required=>1, default=>sub {0});
 has cache_control => (is=>'ro', isa=>'Str', predicate=>'has_cache_control');
@@ -41,12 +41,11 @@ sub uri_args {
   return $self->action_for('serve_file'), @_;
 }
 
-
 __PACKAGE__->meta->make_immutable;
 
 1;
 
-=head1 TITLE
+=head1 NAME 
 
 Catalyst::Controller::Public - mount a public url to files in your Catalyst project
 
@@ -146,7 +145,3 @@ This library is free software; you can redistribute it and/or modify it under
 the same terms as Perl itself.
 
 =cut
-
-__END__
-
-ContentType
