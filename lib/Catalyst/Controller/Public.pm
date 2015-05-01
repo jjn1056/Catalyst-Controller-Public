@@ -3,7 +3,7 @@ package Catalyst::Controller::Public;
 use Moose;
 extends 'Catalyst::Controller';
 
-our $VERSION = '0.001';
+our $VERSION = '0.002';
 
 has show_debugging => (is=>'ro', required=>1, default=>sub {0});
 has cache_control => (is=>'ro', isa=>'Str', predicate=>'has_cache_control');
